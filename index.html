@@ -5,30 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      background: black;
-    }
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: black;
+  }
 
-    video, canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-    }
+  video, canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+  }
 
-    video {
-      width: 100vw;
-      height: 100vh;
-      object-fit: cover;
-    }
+  video {
+    z-index: 1;
+  }
 
-    canvas {
-      width: 100vw;
-      height: 100vh;
-      pointer-events: none;
-    }
-  </style>
+  canvas {
+    z-index: 2;   /* IMPORTANT */
+    pointer-events: none;
+  }
+</style>
 </head>
 <body>
 
@@ -95,3 +95,4 @@
 
 </body>
 </html>
+
