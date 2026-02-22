@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <title>Air Camera</title>
 
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.3.1675469240/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js"></script>
 
 <style>
   body { margin:0; overflow:hidden; }
@@ -44,13 +44,12 @@ function fingersUp(lm) {
 
 const hands = new Hands({
   locateFile: (file) => {
-    return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+    return `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.3.1675469240/${file}`;
   }
 });
 
 hands.setOptions({
   maxNumHands: 1,
-  modelComplexity: 1,
   minDetectionConfidence: 0.7,
   minTrackingConfidence: 0.7
 });
@@ -62,7 +61,6 @@ hands.onResults((results) => {
     for (const lm of results.multiHandLandmarks) {
 
       let [thumb, index, middle] = fingersUp(lm);
-
       let x = lm[8].x * canvasElement.width;
       let y = lm[8].y * canvasElement.height;
 
