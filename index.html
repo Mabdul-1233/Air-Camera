@@ -1,51 +1,58 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Air Camera - Fixed Drawing</title>
+  <meta charset="UTF-8">
+  <title>Air Camera - Final Fixed</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
-  body {
-    margin: 0;
-    overflow: hidden;
-    background: black;
-  }
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: black;
+    }
 
-  video, canvas {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    object-fit: cover;
-  }
+    video, canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+    }
 
-  video {
-    z-index: 1;
-  }
+    video {
+      z-index: 1;
+    }
 
-  canvas {
-    z-index: 2;   /* IMPORTANT */
-    pointer-events: none;
-  }
-</style>
+    canvas {
+      z-index: 2;
+      pointer-events: none;
+    }
+  </style>
 </head>
+
 <body>
 
-  <video class="input_video" autoplay playsinline></video>
-  <canvas class="output_canvas"></canvas>
+  <video id="video" autoplay playsinline></video>
+  <canvas id="canvas"></canvas>
 
   <!-- MediaPipe CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
   <script>
-    const videoElement = document.querySelector('.input_video');
-    const canvasElement = document.querySelector('.output_canvas');
-    const canvasCtx = canvasElement.getContext('2d');
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
 
-    // Initialize MediaPipe
+    // Resize properly
+    function resizeCanvas() {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+    }
+
     const hands = new Hands({
       locateFile: (file) => {
         return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
@@ -55,36 +62,32 @@
     hands.setOptions({
       maxNumHands: 2,
       modelComplexity: 1,
-      minDetectionConfidence: 0.7,
-      minTrackingConfidence: 0.7
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
     });
 
-    hands.onResults(results => {
-      if (!results.multiHandLandmarks) return;
+    hands.onResults((results) => {
 
-      // Match canvas size to video size
-      canvasElement.width = videoElement.videoWidth;
-      canvasElement.height = videoElement.videoHeight;
+      if (!video.videoWidth) return;
 
-      canvasCtx.save();
-      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-      canvasCtx.drawImage(results.image, 0, 0,
-        canvasElement.width, canvasElement.height);
+      resizeCanvas();
 
-      for (const landmarks of results.multiHandLandmarks) {
-        drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS,
-          { color: '#00FF00', lineWidth: 4 });
-        drawLandmarks(canvasCtx, landmarks,
-          { color: '#FF0000', lineWidth: 2 });
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+
+      if (results.multiHandLandmarks) {
+        for (const landmarks of results.multiHandLandmarks) {
+          drawConnectors(ctx, landmarks, HAND_CONNECTIONS,
+            { color: '#00FF00', lineWidth: 4 });
+          drawLandmarks(ctx, landmarks,
+            { color: '#FF0000', lineWidth: 2 });
+        }
       }
-
-      canvasCtx.restore();
     });
 
-    // Start Camera
-    const camera = new Camera(videoElement, {
+    const camera = new Camera(video, {
       onFrame: async () => {
-        await hands.send({ image: videoElement });
+        await hands.send({ image: video });
       },
       width: 640,
       height: 480
@@ -95,4 +98,3 @@
 
 </body>
 </html>
-
