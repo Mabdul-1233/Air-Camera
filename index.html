@@ -1,12 +1,17 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
   <title>Air Writing</title>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/hands.js"></script>
+
+  <!-- Use a stable version of MediaPipe from CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/hands.js"></script>
+
   <style>
-    body { margin: 0; overflow: hidden; }
-    canvas { position: absolute; }
+    body { margin: 0; }
+    canvas { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; }
     video { display: none; }
   </style>
 </head>
@@ -23,19 +28,19 @@ const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-let prevX = 0;
-let prevY = 0;
+let prevX = 0, prevY = 0;
 
 function fingersUp(lm) {
-  let thumb = lm[4].x < lm[3].x;
-  let index = lm[8].y < lm[6].y;
-  let middle = lm[12].y < lm[10].y;
-  return [thumb, index, middle];
+  return [
+    lm[4].x < lm[3].x,        // thumb
+    lm[8].y < lm[6].y,        // index
+    lm[12].y < lm[10].y       // middle
+  ];
 }
 
+// Initialize MediaPipe Hands
 const hands = new Hands({
-  locateFile: file =>
-    `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/${file}`
+  locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/${file}`
 });
 
 hands.setOptions({
@@ -50,16 +55,14 @@ hands.onResults(results => {
   if (results.multiHandLandmarks) {
     for (const lm of results.multiHandLandmarks) {
       let [thumb, index, middle] = fingersUp(lm);
-
       let x = lm[8].x * canvas.width;
       let y = lm[8].y * canvas.height;
 
-      // 👍 Clear
+      // Clear
       if (thumb && !index && !middle) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
       }
-
-      // ✋ Draw
+      // Draw
       else if (!thumb && index && !middle) {
         ctx.beginPath();
         ctx.moveTo(prevX, prevY);
@@ -70,23 +73,22 @@ hands.onResults(results => {
         prevX = x;
         prevY = y;
       }
-
-      // ✌ Erase
+      // Erase
       else if (!thumb && index && middle) {
-        ctx.clearRect(x - 30, y - 30, 60, 60);
+        ctx.clearRect(x - 25, y - 25, 50, 50);
       }
     }
   }
 });
 
+// Start camera
 const camera = new Camera(video, {
   onFrame: async () => {
-    await hands.send({ image: video });
+    await hands.send({image: video});
   },
   width: 640,
   height: 480
 });
-
 camera.start();
 </script>
 
