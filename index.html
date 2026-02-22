@@ -1,104 +1,90 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Air Camera</title>
+  <title>Air Camera - Hand Tracking</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.3.1675469240/hands.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js"></script>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: black;
+    }
 
-<style>
-  body { margin:0; overflow:hidden; }
-  video, canvas {
-    position:absolute;
-    top:0;
-    left:0;
-    width:100vw;
-    height:100vh;
-  }
-</style>
+    video, canvas {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    canvas {
+      pointer-events: none;
+    }
+  </style>
 </head>
-
 <body>
 
-<video class="input_video" autoplay playsinline></video>
-<canvas class="output_canvas"></canvas>
+  <video class="input_video" autoplay playsinline></video>
+  <canvas class="output_canvas"></canvas>
 
-<script>
-const videoElement = document.querySelector('.input_video');
-const canvasElement = document.querySelector('.output_canvas');
-const ctx = canvasElement.getContext('2d');
+  <!-- MediaPipe CDN (IMPORTANT FIX) -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
 
-canvasElement.width = window.innerWidth;
-canvasElement.height = window.innerHeight;
+  <script>
+    const videoElement = document.querySelector('.input_video');
+    const canvasElement = document.querySelector('.output_canvas');
+    const canvasCtx = canvasElement.getContext('2d');
 
-let prevX = 0, prevY = 0;
+    canvasElement.width = window.innerWidth;
+    canvasElement.height = window.innerHeight;
 
-function fingersUp(lm) {
-  return [
-    lm[4].x < lm[3].x,
-    lm[8].y < lm[6].y,
-    lm[12].y < lm[10].y
-  ];
-}
+    // Initialize Hands
+    const hands = new Hands({
+      locateFile: (file) => {
+        return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+      }
+    });
 
-const hands = new Hands({
-  locateFile: (file) => {
-    return `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.3.1675469240/${file}`;
-  }
-});
+    hands.setOptions({
+      maxNumHands: 2,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.7,
+      minTrackingConfidence: 0.7
+    });
 
-hands.setOptions({
-  maxNumHands: 1,
-  minDetectionConfidence: 0.7,
-  minTrackingConfidence: 0.7
-});
+    hands.onResults(onResults);
 
-hands.onResults((results) => {
-  ctx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+    function onResults(results) {
+      canvasCtx.save();
+      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+      canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
 
-  if (results.multiHandLandmarks) {
-    for (const lm of results.multiHandLandmarks) {
-
-      let [thumb, index, middle] = fingersUp(lm);
-      let x = lm[8].x * canvasElement.width;
-      let y = lm[8].y * canvasElement.height;
-
-      // 👍 Clear
-      if (thumb && !index && !middle) {
-        ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+      if (results.multiHandLandmarks) {
+        for (const landmarks of results.multiHandLandmarks) {
+          drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS,
+            { color: '#00FF00', lineWidth: 4 });
+          drawLandmarks(canvasCtx, landmarks,
+            { color: '#FF0000', lineWidth: 2 });
+        }
       }
 
-      // ✋ Draw
-      else if (!thumb && index && !middle) {
-        ctx.beginPath();
-        ctx.moveTo(prevX, prevY);
-        ctx.lineTo(x, y);
-        ctx.strokeStyle = "blue";
-        ctx.lineWidth = 5;
-        ctx.stroke();
-        prevX = x;
-        prevY = y;
-      }
-
-      // ✌ Erase
-      else if (!thumb && index && middle) {
-        ctx.clearRect(x - 30, y - 30, 60, 60);
-      }
+      canvasCtx.restore();
     }
-  }
-});
 
-const camera = new Camera(videoElement, {
-  onFrame: async () => {
-    await hands.send({image: videoElement});
-  },
-  width: 640,
-  height: 480
-});
+    // Start Camera
+    const camera = new Camera(videoElement, {
+      onFrame: async () => {
+        await hands.send({ image: videoElement });
+      },
+      width: 1280,
+      height: 720
+    });
 
-camera.start();
-</script>
+    camera.start();
+  </script>
 
 </body>
 </html>
