@@ -1,23 +1,26 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Air Writing</title>
+<meta charset="UTF-8">
+<title>Air Camera</title>
 
-  <!-- Use a stable version of MediaPipe from CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/hands.js"></script>
 
-  <style>
-    body { margin: 0; }
-    canvas { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; }
-    video { display: none; }
-  </style>
+<style>
+  body { margin:0; overflow:hidden; }
+  video, canvas {
+    position:absolute;
+    top:0;
+    left:0;
+    width:100vw;
+    height:100vh;
+  }
+</style>
 </head>
+
 <body>
 
-<video id="video"></video>
+<video id="video" autoplay playsinline></video>
 <canvas id="canvas"></canvas>
 
 <script>
@@ -30,17 +33,27 @@ canvas.height = window.innerHeight;
 
 let prevX = 0, prevY = 0;
 
+// Start Camera manually (more stable)
+navigator.mediaDevices.getUserMedia({ video: true })
+.then(stream => {
+    video.srcObject = stream;
+})
+.catch(err => {
+    alert("Camera permission denied or error: " + err);
+});
+
+// Finger detection
 function fingersUp(lm) {
   return [
-    lm[4].x < lm[3].x,        // thumb
-    lm[8].y < lm[6].y,        // index
-    lm[12].y < lm[10].y       // middle
+    lm[4].x < lm[3].x,
+    lm[8].y < lm[6].y,
+    lm[12].y < lm[10].y
   ];
 }
 
-// Initialize MediaPipe Hands
 const hands = new Hands({
-  locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/${file}`
+  locateFile: file =>
+    `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/${file}`
 });
 
 hands.setOptions({
@@ -81,15 +94,15 @@ hands.onResults(results => {
   }
 });
 
-// Start camera
-const camera = new Camera(video, {
-  onFrame: async () => {
-    await hands.send({image: video});
-  },
-  width: 640,
-  height: 480
+// Process frames
+async function detect() {
+  await hands.send({image: video});
+  requestAnimationFrame(detect);
+}
+
+video.addEventListener("loadeddata", () => {
+  detect();
 });
-camera.start();
 </script>
 
 </body>
